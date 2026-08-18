@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    environment:
+      - RECIPES_DIR=/app/recipes
+      - PORT=${BACKEND_PORT:-8000}
+    volumes:
+      - ./recipes:/app/recipes
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - backend
+
+# keep the recipes directory on the host so you can edit directly (e.g., on a NAS)
+volumes:
+  recipes:
+    driver: local
