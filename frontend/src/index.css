@@ -15,3 +15,20 @@
 .markdown-body pre {
   overflow-x: auto;
 }
+
+/* Inline markdown inside the structured view: ingredients, steps, table cells.
+   Emphasis and links inherit from MUI; only code needs a look of its own, and
+   the tint is theme-agnostic because currentColor carries the text colour. */
+.markdown-inline code,
+.markdown-body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+.markdown-inline a,
+.markdown-body a {
+  color: inherit;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+}

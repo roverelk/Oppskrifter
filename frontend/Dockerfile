@@ -1,8 +1,9 @@
 # Stage 1: build
 FROM node:18-alpine AS build
 WORKDIR /app
-COPY package.json ./
-RUN npm install
+# Install from the lockfile so an image build matches a local one.
+COPY package.json package-lock.json ./
+RUN npm ci
 COPY . .
 RUN npm run build
 

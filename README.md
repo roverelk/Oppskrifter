@@ -36,9 +36,17 @@ User interface
   "New recipe"), and exactly one recipe is on screen at a time — the app bar's back arrow
   returns to the list.
 - Recipes are created and edited in the same dialog, which goes full-screen on small viewports.
+  The title is not a separate field: it comes from the markdown file's `title:` frontmatter (or its
+  first heading), so there is only ever one place to write it. Changing the title while editing
+  renames the recipe's folder and its `.md` file to match.
+- Markdown formatting — **bold**, *italics*, `code`, links and tables — renders inside the
+  ingredient list, the steps and the tables, so recipes can be properly formatted.
 
 Notes and design choices
-- File-based storage: each recipe is a folder whose name equals the recipe title. The markdown filename must also equal the title (e.g., Bread/Bread.md).
-- Tags and metadata: supported via YAML frontmatter in the markdown file under the keys `title` and `tags`.
+- File-based storage: each recipe is a folder whose name equals the recipe title, and the markdown
+  file inside it is named after the title too (e.g., `Bread/Bread.md`). The backend keeps both names
+  in step with the title as it changes; a folder whose `.md` is named something else is still read.
+- Tags and metadata: supported via YAML frontmatter in the markdown file under the keys `title` and
+  `tags`. `title` is the one source of the recipe's name — the UI never asks for it separately.
 - The backend extracts Ingredients and Instructions sections by looking for headings in the markdown (case-insensitive; also accepts common misspelling `Ingridients`).
 

@@ -23,6 +23,15 @@ function SectionTitle({ children }) {
   )
 }
 
+/**
+ * A single line of a recipe. The backend renders each ingredient, step and table
+ * cell from markdown, so bold, italics, code and links survive into the
+ * structured view.
+ */
+function Inline({ html, ...rest }) {
+  return <Typography {...rest} className="markdown-inline" dangerouslySetInnerHTML={{ __html: html }} />
+}
+
 export default function RecipeDetail({ recipe, loading, onEdit, onDelete }) {
   if (loading) {
     return (
@@ -111,9 +120,7 @@ export default function RecipeDetail({ recipe, loading, onEdit, onDelete }) {
             <SectionTitle>{ingredientsHeading || 'Ingredients'}</SectionTitle>
             <Stack divider={<Divider flexItem />} spacing={0}>
               {ingredients?.map((item, i) => (
-                <Typography key={i} variant="body1" sx={{ py: 0.75 }}>
-                  {item}
-                </Typography>
+                <Inline key={i} html={item} variant="body1" sx={{ py: 0.75 }} />
               ))}
             </Stack>
             {ingredientsTables?.map((table, i) => (
@@ -149,7 +156,7 @@ export default function RecipeDetail({ recipe, loading, onEdit, onDelete }) {
                   >
                     {i + 1}
                   </Box>
-                  <Typography variant="body1">{step}</Typography>
+                  <Inline html={step} variant="body1" />
                 </Stack>
               ))}
             </Stack>
