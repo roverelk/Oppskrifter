@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="16" fill="#009688"/>
+  <!-- fork -->
+  <path d="M20 14v10a4 4 0 0 0 3 3.9V50a2.5 2.5 0 0 0 5 0V27.9A4 4 0 0 0 31 24V14h-3v9h-2v-9h-3v9h-2v-9z"
+        fill="#FFFFFF"/>
+  <!-- spoon -->
+  <path d="M42 13c-4 0-7 3.4-7 8s3 8 5.5 8.4V50a2.5 2.5 0 0 0 5 0V29.4C48 29 51 25.6 51 21s-3-8-7-8z"
+        fill="#FFC107"/>
+</svg>

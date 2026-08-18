@@ -4,6 +4,7 @@ __pycache__/
 /.env
 node_modules/
 /dist/
+dist/
 .DS_Store
 *.pyc
 recipes/*/image.*

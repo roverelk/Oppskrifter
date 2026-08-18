@@ -1,4 +1,3 @@
-# sample recipe
 ---
 title: Bread
 tags: [baking, bread]
