@@ -13,6 +13,8 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu'
 
+import RecipeTable from './RecipeTable'
+
 function SectionTitle({ children }) {
   return (
     <Typography variant="subtitle2" color="primary.main" sx={{ mb: 1.5 }}>
@@ -63,8 +65,14 @@ export default function RecipeDetail({ recipe, loading, onEdit, onDelete }) {
     instructions,
     ingredients_heading: ingredientsHeading,
     instructions_heading: instructionsHeading,
+    ingredients_tables: ingredientsTables,
+    instructions_tables: instructionsTables,
+    tables,
     html,
   } = recipe
+
+  const hasIngredients = ingredients?.length > 0 || ingredientsTables?.length > 0
+  const hasInstructions = instructions?.length > 0 || instructionsTables?.length > 0
 
   return (
     <Stack spacing={2.5}>
@@ -97,27 +105,32 @@ export default function RecipeDetail({ recipe, loading, onEdit, onDelete }) {
         )}
       </Box>
 
-      {ingredients?.length > 0 ? (
+      {hasIngredients ? (
         <Card>
           <CardContent>
             <SectionTitle>{ingredientsHeading || 'Ingredients'}</SectionTitle>
             <Stack divider={<Divider flexItem />} spacing={0}>
-              {ingredients.map((item, i) => (
+              {ingredients?.map((item, i) => (
                 <Typography key={i} variant="body1" sx={{ py: 0.75 }}>
                   {item}
                 </Typography>
               ))}
             </Stack>
+            {ingredientsTables?.map((table, i) => (
+              <Box key={i} sx={{ mt: 2 }}>
+                <RecipeTable headers={table.headers} rows={table.rows} />
+              </Box>
+            ))}
           </CardContent>
         </Card>
       ) : null}
 
-      {instructions?.length > 0 ? (
+      {hasInstructions ? (
         <Card>
           <CardContent>
             <SectionTitle>{instructionsHeading || 'Instructions'}</SectionTitle>
             <Stack spacing={2}>
-              {instructions.map((step, i) => (
+              {instructions?.map((step, i) => (
                 <Stack key={i} direction="row" spacing={2} alignItems="flex-start">
                   <Box
                     sx={{
@@ -140,13 +153,28 @@ export default function RecipeDetail({ recipe, loading, onEdit, onDelete }) {
                 </Stack>
               ))}
             </Stack>
+            {instructionsTables?.map((table, i) => (
+              <Box key={i} sx={{ mt: 2 }}>
+                <RecipeTable headers={table.headers} rows={table.rows} />
+              </Box>
+            ))}
           </CardContent>
         </Card>
       ) : null}
 
+      {/* Tables written under any other heading — nutrition, yields, timings. */}
+      {tables?.map((table, i) => (
+        <Card key={i}>
+          <CardContent>
+            <SectionTitle>{table.heading}</SectionTitle>
+            <RecipeTable headers={table.headers} rows={table.rows} />
+          </CardContent>
+        </Card>
+      ))}
+
       {/* Recipes whose markdown has no recognised Ingredients/Instructions
           headings still deserve to be readable — fall back to the rendered HTML. */}
-      {!ingredients?.length && !instructions?.length && (
+      {!hasIngredients && !hasInstructions && !tables?.length && (
         <Card>
           <CardContent>
             <Box className="markdown-body" dangerouslySetInnerHTML={{ __html: html }} />

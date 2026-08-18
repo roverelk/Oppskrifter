@@ -120,6 +120,64 @@ def is_instructions_heading(heading: str) -> bool:
     return any(stem in folded for stem in INSTRUCTION_HEADINGS)
 
 
+# A GFM table block: rows fenced by pipes, the second one a |---|---| separator.
+TABLE_SEPARATOR = re.compile(r"^\|?[\s:|-]+\|[\s:|-]*$")
+
+
+def split_table_row(line: str) -> List[str]:
+    cells = line.strip().split('|')
+    # A fenced row ("| a | b |") yields empty strings at both ends.
+    if cells and not cells[0].strip():
+        cells = cells[1:]
+    if cells and not cells[-1].strip():
+        cells = cells[:-1]
+    return [c.strip() for c in cells]
+
+
+def parse_table(lines: List[str]) -> Optional[Dict]:
+    """Turn a run of pipe-delimited lines into headers plus rows.
+
+    Hand-written tables tend to carry the empty columns and rows left over from
+    whatever editor drew them, so drop anything that holds no text at all.
+    """
+    rows = [split_table_row(ln) for ln in lines if not TABLE_SEPARATOR.match(ln.strip())]
+    if not rows:
+        return None
+    width = max(len(r) for r in rows)
+    rows = [r + [''] * (width - len(r)) for r in rows]
+    keep = [i for i in range(width) if any(r[i] for r in rows)]
+    if not keep:
+        return None
+    rows = [[r[i] for i in keep] for r in rows]
+    headers, body = rows[0], [r for r in rows[1:] if any(r)]
+    return {"headers": headers, "rows": body}
+
+
+def split_tables(section_text: str) -> (str, List[Dict]):
+    """Separate table blocks from the rest of a section's text."""
+    lines = section_text.splitlines()
+    prose, tables, i = [], [], 0
+    while i < len(lines):
+        stripped = lines[i].strip()
+        is_table_start = (
+            stripped.startswith('|')
+            and i + 1 < len(lines)
+            and TABLE_SEPARATOR.match(lines[i + 1].strip())
+        )
+        if not is_table_start:
+            prose.append(lines[i])
+            i += 1
+            continue
+        block = []
+        while i < len(lines) and lines[i].strip().startswith('|'):
+            block.append(lines[i])
+            i += 1
+        table = parse_table(block)
+        if table:
+            tables.append(table)
+    return '\n'.join(prose), tables
+
+
 @app.get("/api/recipes")
 async def list_recipes():
     if not os.path.isdir(RECIPES_DIR):
@@ -176,19 +234,31 @@ async def get_recipe(dir_name: str):
         post = {'title': dir_name, 'tags': []}
     # nl2br: recipes routinely list ingredients as bare lines rather than a
     # markdown list, and the fallback rendering must not run them together.
-    html = markdown.markdown(md_text, extensions=['nl2br'])
+    # tables: so the fallback renders hand-written GFM tables as tables.
+    html = markdown.markdown(md_text, extensions=['nl2br', 'tables'])
     sections = extract_sections(md_text)
     ingredients = None
     instructions = None
     ingredients_heading = None
     instructions_heading = None
+    ingredients_tables = []
+    instructions_tables = []
+    # Tables under headings we do not otherwise recognise (nutrition, yields, ...)
+    # still belong on the page, so keep them with their own heading.
+    other_tables = []
     for k, v in sections.items():
+        # Tables come out first: their pipe rows are not ingredients or steps.
+        prose, tables = split_tables(v)
         if is_ingredients_heading(k):
-            ingredients = parse_ingredients(v)
+            ingredients = parse_ingredients(prose)
             ingredients_heading = k.strip()
-        if is_instructions_heading(k):
-            instructions = parse_instructions(v)
+            ingredients_tables = tables
+        elif is_instructions_heading(k):
+            instructions = parse_instructions(prose)
             instructions_heading = k.strip()
+            instructions_tables = tables
+        else:
+            other_tables.extend({"heading": k.strip(), **t} for t in tables)
     image_url = None
     for f in os.listdir(path):
         if f.lower().startswith('image.'):
@@ -201,6 +271,9 @@ async def get_recipe(dir_name: str):
         "markdown": raw_md,
         "ingredients": ingredients,
         "instructions": instructions,
+        "ingredients_tables": ingredients_tables,
+        "instructions_tables": instructions_tables,
+        "tables": other_tables,
         # The recipe's own heading text, so the UI can label the cards in
         # whatever language the recipe was written in.
         "ingredients_heading": ingredients_heading,
