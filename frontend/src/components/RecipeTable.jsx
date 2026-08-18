@@ -6,7 +6,8 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 
-/** A hand-written markdown table, parsed by the backend into headers + rows. */
+/** A hand-written markdown table, parsed by the backend into headers + rows.
+ *  Cells arrive as inline HTML, so emphasis written in the table survives. */
 export default function RecipeTable({ headers, rows }) {
   if (!headers?.length && !rows?.length) return null
 
@@ -19,9 +20,12 @@ export default function RecipeTable({ headers, rows }) {
           <TableHead>
             <TableRow>
               {headers.map((h, i) => (
-                <TableCell key={i} sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
-                  {h}
-                </TableCell>
+                <TableCell
+                  key={i}
+                  className="markdown-inline"
+                  sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}
+                  dangerouslySetInnerHTML={{ __html: h }}
+                />
               ))}
             </TableRow>
           </TableHead>
@@ -30,7 +34,11 @@ export default function RecipeTable({ headers, rows }) {
           {rows?.map((row, i) => (
             <TableRow key={i}>
               {row.map((cell, j) => (
-                <TableCell key={j}>{cell}</TableCell>
+                <TableCell
+                  key={j}
+                  className="markdown-inline"
+                  dangerouslySetInnerHTML={{ __html: cell }}
+                />
               ))}
             </TableRow>
           ))}

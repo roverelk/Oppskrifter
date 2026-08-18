@@ -18,7 +18,5 @@ services:
     depends_on:
       - backend
 
-# keep the recipes directory on the host so you can edit directly (e.g., on a NAS)
-volumes:
-  recipes:
-    driver: local
+# The recipes directory stays on the host (see the bind mount above) so you can
+# edit it directly, e.g. on a NAS.

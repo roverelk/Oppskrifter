@@ -31,13 +31,15 @@ tags: [dinner]
 
 /**
  * One dialog for both creating and editing a recipe.
- * - create: POST /api/recipes  (title + markdown_file + optional image)
+ * - create: POST /api/recipes  (markdown_file + optional image)
  * - edit:   POST /api/recipes/{dir}/edit  (optional markdown_file + image)
- *   The backend cannot rename a directory, so the title is fixed while editing.
+ *
+ * The title lives only in the markdown file's frontmatter — it names the recipe
+ * in the UI and the folder on disk, so editing it renames both and the backend
+ * answers with the directory to open next.
  */
 export default function RecipeForm({ open, mode, recipe, fullScreen, onClose, onSaved }) {
   const isEdit = mode === 'edit'
-  const [title, setTitle] = useState('')
   const [md, setMd] = useState('')
   const [image, setImage] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -46,14 +48,13 @@ export default function RecipeForm({ open, mode, recipe, fullScreen, onClose, on
   // Reset the fields every time the dialog is opened.
   useEffect(() => {
     if (!open) return
-    setTitle(isEdit ? recipe?.title || '' : '')
     setMd(isEdit ? recipe?.markdown || '' : TEMPLATE)
     setImage(null)
     setError(null)
     setSaving(false)
   }, [open, isEdit, recipe])
 
-  const canSave = isEdit ? md.trim() !== '' : title.trim() !== '' && md.trim() !== ''
+  const canSave = md.trim() !== ''
 
   async function submit(e) {
     e.preventDefault()
@@ -65,15 +66,14 @@ export default function RecipeForm({ open, mode, recipe, fullScreen, onClose, on
       if (isEdit) {
         form.append('markdown_file', new Blob([md], { type: 'text/markdown' }), `${recipe.dir}.md`)
         if (image) form.append('image', image)
-        await axios.post(`/api/recipes/${encodeURIComponent(recipe.dir)}/edit`, form)
-        onSaved(recipe.dir)
+        const res = await axios.post(`/api/recipes/${encodeURIComponent(recipe.dir)}/edit`, form)
+        // The title may have changed, which renames the directory.
+        onSaved(res.data?.dir || recipe.dir)
       } else {
-        const name = title.trim()
-        form.append('title', name)
-        form.append('markdown_file', new Blob([md], { type: 'text/markdown' }), `${name}.md`)
+        form.append('markdown_file', new Blob([md], { type: 'text/markdown' }), 'recipe.md')
         if (image) form.append('image', image)
         const res = await axios.post('/api/recipes', form)
-        onSaved(res.data?.dir || name)
+        onSaved(res.data?.dir)
       }
     } catch (err) {
       setError(err.response?.data?.detail || err.message || 'Could not save the recipe.')
@@ -117,19 +117,6 @@ export default function RecipeForm({ open, mode, recipe, fullScreen, onClose, on
         <Stack component="form" id="recipe-form" onSubmit={submit} spacing={2} sx={{ pt: 1 }}>
           {error && <Alert severity="error">{error}</Alert>}
           <TextField
-            label="Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            disabled={isEdit}
-            required={!isEdit}
-            fullWidth
-            helperText={
-              isEdit
-                ? 'The title also names the folder on disk, so it cannot be changed here.'
-                : 'Used as both the folder and the markdown file name.'
-            }
-          />
-          <TextField
             label="Markdown"
             value={md}
             onChange={(e) => setMd(e.target.value)}
@@ -138,7 +125,11 @@ export default function RecipeForm({ open, mode, recipe, fullScreen, onClose, on
             fullWidth
             required
             inputProps={{ style: { fontFamily: 'ui-monospace, SFMono-Regular, monospace' } }}
-            helperText="Use “# Ingredients” and “# Instructions” headings to get the structured view."
+            helperText={
+              isEdit
+                ? 'The “title:” line names the recipe — changing it renames its folder too.'
+                : 'The “title:” line names the recipe. Use “# Ingredients” and “# Instructions” headings to get the structured view.'
+            }
           />
           <Button
             component="label"
