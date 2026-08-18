@@ -1,1 +1,17 @@
-body { margin: 0; padding: 0; }
+/* Roboto, self-hosted so the app looks the same offline / behind nginx.
+   Everything else is handled by MUI's CssBaseline + the theme in theme.js. */
+@import '@fontsource/roboto/300.css';
+@import '@fontsource/roboto/400.css';
+@import '@fontsource/roboto/500.css';
+@import '@fontsource/roboto/700.css';
+
+/* Markdown fallback rendered with dangerouslySetInnerHTML (recipes without
+   recognised Ingredients/Instructions headings) should not overflow. */
+.markdown-body img,
+.markdown-body table,
+.markdown-body pre {
+  max-width: 100%;
+}
+.markdown-body pre {
+  overflow-x: auto;
+}

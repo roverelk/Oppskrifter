@@ -17,6 +17,26 @@ Usage (local)
 2. The frontend will be available on http://localhost:3000
    The backend API on http://localhost:8000/api/
 
+Usage (frontend dev server)
+
+Handy when iterating on the UI. Start the backend first, then Vite; `vite.config.js`
+proxies `/api` and `/recipes` to it (nginx does that job in the Docker image).
+
+   cd backend && RECIPES_DIR=../recipes uvicorn main:app --port 8000
+   cd frontend && npm install && npm run dev
+
+Set `BACKEND_ORIGIN` if the backend is not on http://localhost:8000.
+
+User interface
+- Material Design, built with MUI (`@mui/material`) on a teal/amber palette defined once in
+  `frontend/src/theme.js`. Light and dark themes are both supported; the toggle in the app bar
+  remembers your choice and otherwise follows the OS setting.
+- Desktop: a permanent sidebar with search, tag filters and the recipe list, next to the recipe.
+- Phone: everything collapses into a single hamburger menu (search, tag filters, the list and
+  "New recipe"), and exactly one recipe is on screen at a time — the app bar's back arrow
+  returns to the list.
+- Recipes are created and edited in the same dialog, which goes full-screen on small viewports.
+
 Notes and design choices
 - File-based storage: each recipe is a folder whose name equals the recipe title. The markdown filename must also equal the title (e.g., Bread/Bread.md).
 - Tags and metadata: supported via YAML frontmatter in the markdown file under the keys `title` and `tags`.

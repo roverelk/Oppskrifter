@@ -1,5 +1,6 @@
 import os
 import re
+from urllib.parse import quote
 from typing import List, Dict, Optional
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
@@ -26,6 +27,16 @@ os.makedirs(RECIPES_DIR, exist_ok=True)
 
 # Mount the recipes folder so images and markdown are directly available at /recipes/
 app.mount("/recipes", StaticFiles(directory=RECIPES_DIR), name="recipes")
+
+
+def image_route(dir_name: str, filename: str) -> str:
+    """URL for an image under the /recipes static mount.
+
+    Recipe directories are named after the recipe title, so they routinely
+    contain spaces and other characters that must be percent-encoded before a
+    browser will fetch them.
+    """
+    return f"/recipes/{quote(dir_name)}/{quote(filename)}"
 
 
 def find_markdown_file(recipe_dir: str, title: str) -> Optional[str]:
@@ -100,11 +111,19 @@ async def list_recipes():
                 except Exception:
                     pass
             # check for any image files
+            image_url = None
             for f in os.listdir(path):
                 if f.lower().startswith('image.'):
                     has_image = True
+                    image_url = image_route(entry, f)
                     break
-            out.append({"title": title, "dir": entry, "tags": tags, "has_image": has_image})
+            out.append({
+                "title": title,
+                "dir": entry,
+                "tags": tags,
+                "has_image": has_image,
+                "image_url": image_url,
+            })
     return out
 
 
@@ -116,12 +135,15 @@ async def get_recipe(dir_name: str):
     mdfile = find_markdown_file(path, dir_name)
     if not mdfile:
         raise HTTPException(status_code=404, detail="Markdown file not found in recipe directory")
+    # The editor round-trips the file verbatim, so keep the raw source
+    # (frontmatter included) alongside the parsed body.
+    with open(mdfile, 'r', encoding='utf-8') as f:
+        raw_md = f.read()
     try:
-        post = frontmatter.load(mdfile)
+        post = frontmatter.loads(raw_md)
         md_text = post.content
     except Exception:
-        with open(mdfile, 'r', encoding='utf-8') as f:
-            md_text = f.read()
+        md_text = raw_md
         post = {'title': dir_name, 'tags': []}
     html = markdown.markdown(md_text)
     sections = extract_sections(md_text)
@@ -137,12 +159,13 @@ async def get_recipe(dir_name: str):
     image_url = None
     for f in os.listdir(path):
         if f.lower().startswith('image.'):
-            image_url = f"/recipes/{dir_name}/{f}"
+            image_url = image_route(dir_name, f)
             break
     return {
         "title": post.get('title', dir_name),
         "tags": post.get('tags', []),
         "html": html,
+        "markdown": raw_md,
         "ingredients": ingredients,
         "instructions": instructions,
         "image_url": image_url,
