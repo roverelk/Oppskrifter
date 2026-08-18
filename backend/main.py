@@ -91,6 +91,35 @@ def parse_instructions(section_text: str) -> List[str]:
     return steps
 
 
+# Headings are written by hand, in Norwegian as often as English, so match on
+# stems: "Ingredienser" contains no "ingredient", and "Fremgangmate" contains no
+# "instruction". Compared against the heading with diacritics folded.
+INGREDIENT_HEADINGS = ('ingredien', 'ingridien', 'ravare', 'det du trenger')
+INSTRUCTION_HEADINGS = (
+    'instruction', 'step', 'method', 'direction',
+    'fremgang', 'framgang', 'metode', 'tilberedning', 'slik', 'steg',
+    'oppskrift', 'gjennomforing',
+)
+
+
+def fold(text: str) -> str:
+    """Lowercase and strip Norwegian diacritics for tolerant heading matching."""
+    lowered = text.strip().lower()
+    for src, dst in (('\u00e6', 'ae'), ('\u00f8', 'o'), ('\u00e5', 'a')):
+        lowered = lowered.replace(src, dst)
+    return lowered
+
+
+def is_ingredients_heading(heading: str) -> bool:
+    folded = fold(heading)
+    return any(stem in folded for stem in INGREDIENT_HEADINGS)
+
+
+def is_instructions_heading(heading: str) -> bool:
+    folded = fold(heading)
+    return any(stem in folded for stem in INSTRUCTION_HEADINGS)
+
+
 @app.get("/api/recipes")
 async def list_recipes():
     if not os.path.isdir(RECIPES_DIR):
@@ -145,17 +174,21 @@ async def get_recipe(dir_name: str):
     except Exception:
         md_text = raw_md
         post = {'title': dir_name, 'tags': []}
-    html = markdown.markdown(md_text)
+    # nl2br: recipes routinely list ingredients as bare lines rather than a
+    # markdown list, and the fallback rendering must not run them together.
+    html = markdown.markdown(md_text, extensions=['nl2br'])
     sections = extract_sections(md_text)
     ingredients = None
     instructions = None
-    # match headings case-insensitive
+    ingredients_heading = None
+    instructions_heading = None
     for k, v in sections.items():
-        lk = k.strip().lower()
-        if 'ingredient' in lk or 'ingridient' in lk:
+        if is_ingredients_heading(k):
             ingredients = parse_ingredients(v)
-        if 'instruction' in lk or 'step' in lk:
+            ingredients_heading = k.strip()
+        if is_instructions_heading(k):
             instructions = parse_instructions(v)
+            instructions_heading = k.strip()
     image_url = None
     for f in os.listdir(path):
         if f.lower().startswith('image.'):
@@ -168,6 +201,10 @@ async def get_recipe(dir_name: str):
         "markdown": raw_md,
         "ingredients": ingredients,
         "instructions": instructions,
+        # The recipe's own heading text, so the UI can label the cards in
+        # whatever language the recipe was written in.
+        "ingredients_heading": ingredients_heading,
+        "instructions_heading": instructions_heading,
         "image_url": image_url,
         "dir": dir_name,
     }

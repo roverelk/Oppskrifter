@@ -55,7 +55,16 @@ export default function RecipeDetail({ recipe, loading, onEdit, onDelete }) {
     )
   }
 
-  const { title, tags, image_url: imageUrl, ingredients, instructions, html } = recipe
+  const {
+    title,
+    tags,
+    image_url: imageUrl,
+    ingredients,
+    instructions,
+    ingredients_heading: ingredientsHeading,
+    instructions_heading: instructionsHeading,
+    html,
+  } = recipe
 
   return (
     <Stack spacing={2.5}>
@@ -91,7 +100,7 @@ export default function RecipeDetail({ recipe, loading, onEdit, onDelete }) {
       {ingredients?.length > 0 ? (
         <Card>
           <CardContent>
-            <SectionTitle>Ingredients</SectionTitle>
+            <SectionTitle>{ingredientsHeading || 'Ingredients'}</SectionTitle>
             <Stack divider={<Divider flexItem />} spacing={0}>
               {ingredients.map((item, i) => (
                 <Typography key={i} variant="body1" sx={{ py: 0.75 }}>
@@ -106,7 +115,7 @@ export default function RecipeDetail({ recipe, loading, onEdit, onDelete }) {
       {instructions?.length > 0 ? (
         <Card>
           <CardContent>
-            <SectionTitle>Instructions</SectionTitle>
+            <SectionTitle>{instructionsHeading || 'Instructions'}</SectionTitle>
             <Stack spacing={2}>
               {instructions.map((step, i) => (
                 <Stack key={i} direction="row" spacing={2} alignItems="flex-start">
